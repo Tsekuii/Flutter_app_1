@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
@@ -7,8 +8,17 @@ import 'features/practice/providers/practice_provider.dart';
 import 'features/progress/providers/progress_provider.dart';
 import 'features/skills/providers/skill_mastery_provider.dart';
 
+// Toggle this during development to force a logical screen size (no effect in release)
+const bool kForceTestSize = true;
+const Size kPhoneTestSize = Size(390, 844); // iPhone-ish
+
 void main() {
-  runApp(const QuestLearnApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kForceTestSize && !kReleaseMode) {
+    runApp(ForcedSizeWrapper(size: kPhoneTestSize, child: const QuestLearnApp()));
+  } else {
+    runApp(const QuestLearnApp());
+  }
 }
 
 class QuestLearnApp extends StatelessWidget {
@@ -27,8 +37,30 @@ class QuestLearnApp extends StatelessWidget {
         title: 'QuestLearn',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        useInheritedMediaQuery: true, // allow ancestor MediaQuery (our ForcedSizeWrapper) to take effect
         home: const DashboardPage(),
       ),
     );
+  }
+}
+
+class ForcedSizeWrapper extends StatelessWidget {
+  final Size size;
+  final Widget child;
+
+  const ForcedSizeWrapper({required this.size, required this.child, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Use fromWindow (non-deprecated) to seed current values, then override size
+    final base = MediaQueryData.fromWindow(WidgetsBinding.instance.window);
+    final forced = base.copyWith(
+      size: size,
+      // Optionally change other fields here, for example:
+      // devicePixelRatio: 2.0,
+      // textScaleFactor: 1.0,
+    );
+
+    return MediaQuery(data: forced, child: child);
   }
 }
